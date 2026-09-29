@@ -2,12 +2,23 @@
 #include <stdio.h>
 
 #include "bmg.h"
+#include "cheat.h"
 #include "dialogue_bin.h"
 
 #define LEWIS_SIZE   16
 #define LEWIS_SPEED  1
+#define TURBO_SPEED  3
 
 #define DIALOGUE_ROW 12
+
+static const uint16_t CHEAT_TURBO[] = {
+    KEY_UP, KEY_UP, KEY_DOWN, KEY_DOWN,
+    KEY_LEFT, KEY_RIGHT, KEY_LEFT, KEY_RIGHT,
+    KEY_B, KEY_A,
+};
+
+#define CHEAT_KEYS (KEY_UP | KEY_DOWN | KEY_LEFT | KEY_RIGHT | KEY_A | KEY_B | \
+                    KEY_X | KEY_Y | KEY_L | KEY_R | KEY_START | KEY_SELECT)
 
 static void draw_dialogue(const char *text)
 {
@@ -50,6 +61,11 @@ int main(void)
 
     bool dialogue_visible = false;
 
+    Cheat turbo_cheat;
+    cheat_init(&turbo_cheat, CHEAT_TURBO,
+               sizeof(CHEAT_TURBO) / sizeof(CHEAT_TURBO[0]));
+    int speed = LEWIS_SPEED;
+
     int x = (SCREEN_WIDTH - LEWIS_SIZE) / 2;
     int y = (SCREEN_HEIGHT - LEWIS_SIZE) / 2;
 
@@ -59,10 +75,17 @@ int main(void)
         u16 held = keysHeld();
         u16 down = keysDown();
 
-        if (held & KEY_LEFT)  x -= LEWIS_SPEED;
-        if (held & KEY_RIGHT) x += LEWIS_SPEED;
-        if (held & KEY_UP)    y -= LEWIS_SPEED;
-        if (held & KEY_DOWN)  y += LEWIS_SPEED;
+        if (cheat_feed(&turbo_cheat, down & CHEAT_KEYS))
+        {
+            speed = (speed == LEWIS_SPEED) ? TURBO_SPEED : LEWIS_SPEED;
+            printf("\x1b[14;1H%-29s",
+                   speed == TURBO_SPEED ? "CHEAT: turbo ligado" : "CHEAT: turbo desligado");
+        }
+
+        if (held & KEY_LEFT)  x -= speed;
+        if (held & KEY_RIGHT) x += speed;
+        if (held & KEY_UP)    y -= speed;
+        if (held & KEY_DOWN)  y += speed;
 
         if (x < 0) x = 0;
         if (y < 0) y = 0;
