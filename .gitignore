@@ -1,0 +1,10 @@
+build/
+*.nds
+*.elf
+*.map
+*.o
+*.d
+
+.vscode/
+.idea/
+.DS_Store
