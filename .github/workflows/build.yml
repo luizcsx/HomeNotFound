@@ -1,0 +1,33 @@
+name: Build ROM
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: skylyrac/blocksds:slim-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verificar Makefile
+        run: |
+          if [ ! -f Makefile ]; then
+            echo "::error::Makefile não encontrado. Copie templates/rom_arm9/Makefile do repositório blocksds/sdk para a raiz do projeto."
+            exit 1
+          fi
+
+      - name: Compilar
+        run: make
+
+      - name: Publicar ROM como artefato
+        uses: actions/upload-artifact@v4
+        with:
+          name: home-not-found-nds
+          path: "*.nds"
+          if-no-files-found: error
