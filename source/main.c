@@ -1,8 +1,25 @@
 #include <nds.h>
 #include <stdio.h>
 
+#include "bmg.h"
+#include "dialogue_bin.h"
+
 #define LEWIS_SIZE   16
 #define LEWIS_SPEED  1
+
+#define DIALOGUE_ROW 12
+
+static void draw_dialogue(const char *text)
+{
+    char ascii[29];
+    bmg_to_ascii(text, ascii, sizeof(ascii));
+    printf("\x1b[%d;1H> %-27s", DIALOGUE_ROW, ascii);
+}
+
+static void clear_dialogue(void)
+{
+    printf("\x1b[%d;1H%-29s", DIALOGUE_ROW, "");
+}
 
 int main(void)
 {
@@ -20,10 +37,18 @@ int main(void)
         lewisGfx[i] = 1 | (1 << 8);
 
     consoleDemoInit();
-    printf("\x1b[1;1HHome Not Found");
-    printf("\x1b[3;1HMilestone 0");
-    printf("\x1b[5;1HD-pad: mover Lewis");
-    printf("\x1b[6;1HToque: ver coordenadas");
+    printf("\x1b[1;1HHOME NOT FOUND");
+    printf("\x1b[2;1HLuiz Miguel");
+    printf("\x1b[4;1HMilestone 0.1");
+    printf("\x1b[6;1HD-pad: mover Lewis");
+    printf("\x1b[7;1HToque: abrir/fechar dialogo");
+
+    Bmg dialogue;
+    bool dialogue_ok = bmg_load(&dialogue, dialogue_bin, dialogue_bin_size);
+    if (!dialogue_ok)
+        printf("\x1b[20;1HErro: BMG invalido");
+
+    bool dialogue_visible = false;
 
     int x = (SCREEN_WIDTH - LEWIS_SIZE) / 2;
     int y = (SCREEN_HEIGHT - LEWIS_SIZE) / 2;
@@ -32,6 +57,7 @@ int main(void)
     {
         scanKeys();
         u16 held = keysHeld();
+        u16 down = keysDown();
 
         if (held & KEY_LEFT)  x -= LEWIS_SPEED;
         if (held & KEY_RIGHT) x += LEWIS_SPEED;
@@ -47,7 +73,21 @@ int main(void)
         {
             touchPosition touch;
             touchRead(&touch);
-            printf("\x1b[8;1HToque: %3d, %3d   ", touch.px, touch.py);
+            printf("\x1b[9;1HToque: %3d, %3d   ", touch.px, touch.py);
+        }
+
+        if ((down & KEY_TOUCH) && dialogue_ok)
+        {
+            dialogue_visible = !dialogue_visible;
+            if (dialogue_visible)
+            {
+                const char *msg = bmg_get(&dialogue, 0);
+                draw_dialogue(msg != NULL ? msg : "(mensagem vazia)");
+            }
+            else
+            {
+                clear_dialogue();
+            }
         }
 
         oamSet(&oamMain, 0, x, y, 0, 0,
